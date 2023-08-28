@@ -11,14 +11,13 @@ from geometry_msgs.msg import Point, PoseStamped
 
 from spar_msgs.msg import FlightMotionAction, FlightMotionGoal
 
-from std_msgs.msg import Bool, Float32
+from std_msgs.msg import Bool, UInt8
 
 from sensor_msgs.msg import BatteryState
 
 #importing librasry for interfacing breadcrumb (not yet required.)
 #from breadcrumb.srv import RequestPath
 #from breadcrumb.srv import RequestPathRequest
-
 
 
 
@@ -70,6 +69,9 @@ class Guidance():
 		rospy.loginfo("Waiting for spar...")
 		self.spar_client.wait_for_server()
 
+		#publisher to command payload subsystems
+		self.pub_payload = rospy.Publisher('payloadcommands', UInt8, queue_size=2)
+
 		# Wait to connect with Breadcrumb (MUST HABVE BREADCRUMB.LAUNCH RUNNING OTHERWISE IT BOLD:/STUCKS/!! !TEEMO!)
 		# Code will error if you try to connect to a service
 		# that does not exist
@@ -103,10 +105,15 @@ class Guidance():
 			# subscribe to landing site confirmation signal
 			self.sub_aruco = rospy.Subscriber("landing_site", Bool, self.callback_land)
 			rospy.loginfo("subbed to land")
+
+
+
 			
 			self.sub_pose = rospy.Subscriber("uavasr/pose", PoseStamped, self.callback_pose)
 			# Subscriber to catch "ROI" diversion commands
 			self.sub_roi = rospy.Subscriber("~roi", PoseStamped, self.callback_inspect_roi)
+
+
 
 			# XXX: Could have a publisher to output our waypoint progress
 			# throughout the flight (should publish each time the waypoint
@@ -176,6 +183,8 @@ class Guidance():
 		# Store current position so it can be accessed later, it then set the land refresh changes flag to false.
 		if msg_in.data and self.land_refresh:
 			self.landing_waypoint = [self.current_location.x, self.current_location.y, self.current_location.z, 0.0]
+			#open both payload bays
+			self.command_payload(command=3)
 			rospy.logfatal("Aruco marker detected, the goofy ahh drone's landing position will be " + str(self.landing_waypoint))
 			self.waypoints[-1] = self.landing_waypoint
 			self.land_refresh = False
@@ -187,6 +196,13 @@ class Guidance():
 		self.current_location = msg_in.pose.position
 		#rospy.loginfo("my current location is" + str([self.current_location.x, self.current_location.y, self.current_location.z, 0.0]))
 
+	def command_payload(self,command):
+			# payload commands message structure:
+			#both close:   0b00000000 (0)
+			#both open:    0b00000011 (3)
+			#tracker open: 0b00000010 (2)
+			#epi open:     0b00000001 (1)
+		self.pub_payload.publish(command)
 
 	# This function will fire whenever a ROI pose message is sent
 	# It is also responsible for handling the ROI "inspection task"
@@ -217,7 +233,7 @@ class Guidance():
 			return
 
 		rospy.loginfo("Reached diversion ROI!")
-		# XXX: Do something?
+		# XXX: Do something? drop yo mama????
 		rospy.sleep(rospy.Duration(10))
 
 		rospy.loginfo("Returning to flight plan...")

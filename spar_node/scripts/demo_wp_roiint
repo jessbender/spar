@@ -80,7 +80,7 @@ class Guidance():
 			#		begin the mission at the first waypoint after take-off
 
 			#takeoff code here
-			self.send_takeoff(self)
+			self.send_takeoff()
 
 
 			self.send_wp(self.waypoints[0])
@@ -92,11 +92,13 @@ class Guidance():
 			# from a diversion to the correct location
 			# XXX: These topics could be hard-coded to avoid using a launch file
 			# subscribe to landing site confirmation signal
-			self.voltage_monitoring = rospy.Subscriber("~battery", BatteryState, self.callback_voltagemonitor)
+			self.voltage_monitoring = rospy.Subscriber("uavasr/battery", BatteryState, self.callback_voltagemonitor)
+			rospy.loginfo("subbed to battery ")
 
 			self.sub_aruco = rospy.Subscriber("landing_site", Bool, self.callback_land)
+			rospy.loginfo("subbed to land")
 			
-			self.sub_pose = rospy.Subscriber("~pose", PoseStamped, self.callback_pose)
+			self.sub_pose = rospy.Subscriber("uavasr/pose", PoseStamped, self.callback_pose)
 			# Subscriber to catch "ROI" diversion commands
 			self.sub_roi = rospy.Subscriber("~roi", PoseStamped, self.callback_inspect_roi)
 
@@ -160,7 +162,7 @@ class Guidance():
 	def callback_voltagemonitor(self, msg_in):
 		voltage = msg_in.voltage
 		current = msg_in.current
-		print("the current voltage is" + voltage)
+		#rospy.loginfo("the current voltage is" + str(voltage))
 	# This function will check receive the current pose of the UAV constantly
 	def callback_land(self, msg_in):
 		# Store current position so it can be accessed later, it then set the land refresh changes flag to false.
@@ -173,7 +175,7 @@ class Guidance():
 	def callback_pose(self, msg_in):
 		# Store the current position at all times so it can be accessed later
 		self.current_location = msg_in.pose.position
-		print("my current location is" + [self.current_location.x, self.current_location.y, self.current_location.z, 0.0])
+		#rospy.loginfo("my current location is" + str([self.current_location.x, self.current_location.y, self.current_location.z, 0.0]))
 
 
 	# This function will fire whenever a ROI pose message is sent

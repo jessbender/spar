@@ -111,7 +111,7 @@ class Guidance():
 			
 			self.sub_pose = rospy.Subscriber("uavasr/pose", PoseStamped, self.callback_pose)
 			# Subscriber to catch "ROI" diversion commands
-			self.sub_roi = rospy.Subscriber("~roi", PoseStamped, self.callback_inspect_roi)
+			self.sub_roi = rospy.Subscriber("roi", PoseStamped, self.callback_inspect_roi)
 
 
 
@@ -234,7 +234,10 @@ class Guidance():
 
 		rospy.loginfo("Reached diversion ROI!")
 		# XXX: Do something? drop yo mama????
-		rospy.sleep(rospy.Duration(10))
+		rospy.sleep(rospy.Duration(3))
+		rospy.loginfo("dropping payload NOW")
+		self.command_payload(command=2)
+		rospy.sleep(rospy.Duration(3))
 
 		rospy.loginfo("Returning to flight plan...")
 

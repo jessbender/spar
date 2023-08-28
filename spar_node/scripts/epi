@@ -13,7 +13,7 @@ def callback(msg):
     # both close:   0b00000000 (0)
     # both open:    0b00000011 (3)
     # tracker open: 0b00000010 (2)
-    # epi open:     0b00000001 (1)
+    # epi open:     0b00000001 (1) 
     
     if msg.data == 0 or msg.data == 2:
         servo.min()

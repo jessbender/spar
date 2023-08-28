@@ -36,6 +36,9 @@ class Guidance():
 
 		#landing waypoint for the drone to return to.
 		self.landing_waypoint = [-1, -1, 1, 0]
+		#battery state
+		self.voltage = 12.6 #100%
+		self.current = 0
 		self.land_refresh = True
 		# Internal counter to see what waypoint were are up to
 		self.waypoint_counter = 0
@@ -46,6 +49,9 @@ class Guidance():
 		# during the roi diversion and taking over our flight!
 		self.performing_roi = False
 
+		#append landing waypoint to the waypoints list.
+		waypoints.append(self.landing_waypoint)
+		
 		# Save the input waypoints
 		self.waypoints = waypoints
 
@@ -79,7 +85,7 @@ class Guidance():
 			# XXX:	Another option would be to do "takeoff" and leave "waypoint_counter = 0" to
 			#		begin the mission at the first waypoint after take-off
 
-			#takeoff code here
+			#takeoff here
 			self.send_takeoff()
 
 
@@ -159,15 +165,18 @@ class Guidance():
 		self.spar_client.cancel_goal()
 
 		rospy.loginfo("Guidance stopped")
+	# This function monitors the voltage of the battery
 	def callback_voltagemonitor(self, msg_in):
-		voltage = msg_in.voltage
-		current = msg_in.current
-		#rospy.loginfo("the current voltage is" + str(voltage))
+		self.voltage = msg_in.voltage
+		self.current = msg_in.current
+		#rospy.loginfo("the current voltage of the battery is " + str(voltage))
 	# This function will check receive the current pose of the UAV constantly
 	def callback_land(self, msg_in):
 		# Store current position so it can be accessed later, it then set the land refresh changes flag to false.
 		if msg_in.msg and self.land_refresh:
 			self.landing_waypoint = [self.current_location.x, self.current_location.y, self.current_location.z, 0.0]
+			rospy.logerr("Aruco marker detected, the goofy ahh drone's landing position will be " + str(self.landing_waypoint))
+			self.waypoints[-1] = self.landing_waypoint
 			self.land_refresh = False
 
 
@@ -256,6 +265,44 @@ class Guidance():
 		 # If shutdown is issued, cancel current mission before rospy is shutdown
 		rospy.on_shutdown(lambda : self.spar_client.cancel_goal())
 
+
+	def send_land(self):
+		# Create our goal
+		goal = FlightMotionGoal()
+		goal.motion = FlightMotionGoal.MOTION_LAND
+		goal.velocity_vertical = rospy.get_param("~speed", 0.2)		# Other velocity information is ignored
+		# No other information is used
+
+		# Send the goal
+		rospy.loginfo("Sending goal motion...")
+		self.spar_client.send_goal(goal)
+		# If shutdown is issued, cancel current mission before rospy is shutdown
+		rospy.on_shutdown(lambda : self.spar_client.cancel_goal())
+		# Wait for the result of the goal
+		self.spar_client.wait_for_result()
+
+		# Output some feedback for our flight
+		result = self.spar_client.get_state()
+		if result == GoalStatus.SUCCEEDED:
+			rospy.loginfo("Landing complete!")
+		else:
+			rospy.logerr("Landing failed!")
+
+			# Detailed Feedback
+			if result != GoalStatus.SUCCEEDED:
+				if(result == GoalStatus.PENDING) or (result == GoalStatus.ACTIVE):
+					rospy.loginfo("Sent command to cancel current mission")
+				elif(result == GoalStatus.PREEMPTED):
+					rospy.logwarn("The current mission was cancelled")
+				elif(result == GoalStatus.ABORTED):
+					rospy.logwarn("The current mission was aborted")
+				elif(result == GoalStatus.RECALLED):
+					rospy.logerr("Error: The current mission was recalled")
+				elif(result == GoalStatus.REJECTED):
+					rospy.logerr("Error: The current mission was rejected")
+				else:
+					rospy.logerr("Error: An unknown goal status was recieved")
+
 	def send_takeoff(self):
 		# Build the flight goal
 		goal = FlightMotionGoal()
@@ -321,6 +368,11 @@ class Guidance():
 				#		(Add in another "if" and make the waypoint counter check
 				#		 an "elif" check instead.
 				#		 i.e. if complete; elif more wps; else wps finished)
+				if (self.waypoint_counter < (len(self.waypoints))) and (self.voltage < 9.5):
+					rospy.log("Low battery, return to landing point ...")					
+					self.send_wp(self.waypoints[len(self.waypoints)])
+					self.waypoint_counter = len(self.waypoints)
+
 				if self.waypoint_counter < (len(self.waypoints)):
 					self.send_wp(self.waypoints[self.waypoint_counter])
 					# Increment our waypoint counter
@@ -329,7 +381,8 @@ class Guidance():
 					# Else the mission is over, shutdown and quit the node
 					# XXX:	This could be used to restart the mission back to the
 					#		first waypoint instead to restart the mission
-					rospy.loginfo("Mission complete!")
+					rospy.loginfo("Mission complet, sending land")
+					self.send_land()
 					rospy.signal_shutdown("complete")
 			elif (self.spar_client.get_state() == GoalStatus.PREEMPTED) or (self.spar_client.get_state() == GoalStatus.ABORTED) or (self.spar_client.get_state() == GoalStatus.REJECTED):
 				rospy.loginfo("Mission cancelled!")

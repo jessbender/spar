@@ -184,7 +184,9 @@ class Guidance():
 		if msg_in.data and self.land_refresh:
 			self.landing_waypoint = [self.current_location.x, self.current_location.y, self.current_location.z, 0.0]
 			#open both payload bays
-			self.command_payload(command=3)
+			self.command_payload(command=1)
+			rospy.sleep(rospy.Duration(3))
+			self.command_payload(command=0)
 			rospy.logfatal("Aruco marker detected, the goofy ahh drone's landing position will be " + str(self.landing_waypoint))
 			self.waypoints[-1] = self.landing_waypoint
 			self.land_refresh = False
@@ -238,6 +240,7 @@ class Guidance():
 		rospy.loginfo("dropping payload NOW")
 		self.command_payload(command=2)
 		rospy.sleep(rospy.Duration(3))
+		self.command_payload(command=0)
 
 		rospy.loginfo("Returning to flight plan...")
 

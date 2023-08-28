@@ -13,9 +13,9 @@ from spar_msgs.msg import FlightMotionAction, FlightMotionGoal
 
 from std_msgs.msg import Bool
 
-#importing librasry for interfacing breadcrumb
-from breadcrumb.srv import RequestPath
-from breadcrumb.srv import RequestPathRequest
+#importing librasry for interfacing breadcrumb (not yet required.)
+#from breadcrumb.srv import RequestPath
+#from breadcrumb.srv import RequestPathRequest
 
 
 
@@ -32,6 +32,9 @@ class Guidance():
 		if not self.check_waypoints(waypoints):
 			raise ArgumentError("Invalid waypoint list input!")
 
+		#landing waypoint for the drone to return to.
+		self.landing_waypoint = [-1, -1, 0, 0]
+		self.land_refresh = True
 		# Internal counter to see what waypoint were are up to
 		self.waypoint_counter = 0
 
@@ -86,8 +89,9 @@ class Guidance():
 			# Callback to save "current location" such that we can perform and return
 			# from a diversion to the correct location
 			# XXX: These topics could be hard-coded to avoid using a launch file
-
+			# subscribe to landing site confirmation signal
 			self.sub_aruco = rospy.Subscriber("landing_site", Bool, self.callback_land)
+			
 			self.sub_pose = rospy.Subscriber("~pose", PoseStamped, self.callback_pose)
 			# Subscriber to catch "ROI" diversion commands
 			self.sub_roi = rospy.Subscriber("~roi", PoseStamped, self.callback_inspect_roi)
@@ -143,6 +147,7 @@ class Guidance():
 	# This function will make sure we shut down the node as safely as possible
 	def shutdown(self):
 		# Unregister anything that needs it here
+		self.sub_aruco.unregister()
 		self.sub_pose.unregister()
 		self.sub_roi.unregister()
 		self.spar_client.cancel_goal()
@@ -151,8 +156,10 @@ class Guidance():
 
 	# This function will check receive the current pose of the UAV constantly
 	def callback_land(self, msg_in):
-		# Store the current position at all times so it can be accessed later
-		print(msg_in)
+		# Store current position so it can be accessed later, it then set the land refresh changes flag to false.
+		if msg_in.msg and self.land_refresh:
+			self.landing_waypoint = [self.current_location.x, self.current_location.y, self.current_location.z, 0.0]
+			self.land_refresh = False
 
 
 	# This function will check receive the current pose of the UAV constantly

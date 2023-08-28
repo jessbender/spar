@@ -79,7 +79,7 @@ class Guidance():
 
 		if not rospy.is_shutdown():
 			# Good to go, start mission
-			rospy.loginfo("Starting waypoint mission")
+			rospy.loginfo("Starting mission")
 
 			# Setup first waypoint segment
 			# XXX:	Another option would be to do "takeoff" and leave "waypoint_counter = 0" to
@@ -97,10 +97,10 @@ class Guidance():
 			# Callback to save "current location" such that we can perform and return
 			# from a diversion to the correct location
 			# XXX: These topics could be hard-coded to avoid using a launch file
-			# subscribe to landing site confirmation signal
 			self.voltage_monitoring = rospy.Subscriber("uavasr/battery", BatteryState, self.callback_voltagemonitor)
 			rospy.loginfo("subbed to battery ")
 
+			# subscribe to landing site confirmation signal
 			self.sub_aruco = rospy.Subscriber("landing_site", Bool, self.callback_land)
 			rospy.loginfo("subbed to land")
 			
@@ -162,6 +162,7 @@ class Guidance():
 		self.sub_aruco.unregister()
 		self.sub_pose.unregister()
 		self.sub_roi.unregister()
+		self.voltage_monitoring.unregister()
 		self.spar_client.cancel_goal()
 
 		rospy.loginfo("Guidance stopped")
@@ -173,9 +174,9 @@ class Guidance():
 	# This function will check receive the current pose of the UAV constantly
 	def callback_land(self, msg_in):
 		# Store current position so it can be accessed later, it then set the land refresh changes flag to false.
-		if msg_in.msg and self.land_refresh:
+		if msg_in.data and self.land_refresh:
 			self.landing_waypoint = [self.current_location.x, self.current_location.y, self.current_location.z, 0.0]
-			rospy.logerr("Aruco marker detected, the goofy ahh drone's landing position will be " + str(self.landing_waypoint))
+			rospy.logfatal("Aruco marker detected, the goofy ahh drone's landing position will be " + str(self.landing_waypoint))
 			self.waypoints[-1] = self.landing_waypoint
 			self.land_refresh = False
 
@@ -361,7 +362,7 @@ class Guidance():
 			#		(such as aborted), as there are some states
 			#		where we won't recover from, and should just exit
 			if self.spar_client.get_state() == GoalStatus.SUCCEEDED:
-				rospy.loginfo(f"Reached waypoint {self.waypoint_counter} and my current battery is {self.voltage}v")
+				rospy.loginfo(f"Reached waypoint {self.waypoint_counter} and current battery voltage is {self.voltage}v")
 
 				# XXX:	Another check could go here to finish the mission early
 				#		if "all" inspection tasks have been completed
@@ -369,8 +370,8 @@ class Guidance():
 				#		 an "elif" check instead.
 				#		 i.e. if complete; elif more wps; else wps finished)
 				if (self.waypoint_counter < (len(self.waypoints))) and (self.voltage < 9.5):
-					rospy.log("Low battery, return to landing point ...")					
-					self.send_wp(self.waypoints[len(self.waypoints)])
+					rospy.logwarn("Low battery, return to landing point ...")					
+					self.send_wp(self.waypoints[-1])
 					self.waypoint_counter = len(self.waypoints)
 
 				if self.waypoint_counter < (len(self.waypoints)):
@@ -396,7 +397,6 @@ def main(args):
 	# List of waypoints
 	# [X, Y, Z, Yaw]
 	wps =  [[-2.5, -4.0, 1.5, 0.0],
-			[-1.5, -4.0, 1.5, 0.0],
 			[2.5, 4.0, 4.0, 0.0]]
 
 	# Create our guidance class option

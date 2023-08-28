@@ -11,9 +11,13 @@ from geometry_msgs.msg import Point, PoseStamped
 
 from spar_msgs.msg import FlightMotionAction, FlightMotionGoal
 
+from std_msgs.msg import Bool
+
 #importing librasry for interfacing breadcrumb
 from breadcrumb.srv import RequestPath
 from breadcrumb.srv import RequestPathRequest
+
+
 
 
 # This is getting a bit more complicated now, so we'll put our information in
@@ -82,6 +86,8 @@ class Guidance():
 			# Callback to save "current location" such that we can perform and return
 			# from a diversion to the correct location
 			# XXX: These topics could be hard-coded to avoid using a launch file
+
+			self.sub_aruco = rospy.Subscriber("landing_site", Bool, self.callback_land)
 			self.sub_pose = rospy.Subscriber("~pose", PoseStamped, self.callback_pose)
 			# Subscriber to catch "ROI" diversion commands
 			self.sub_roi = rospy.Subscriber("~roi", PoseStamped, self.callback_inspect_roi)
@@ -142,6 +148,11 @@ class Guidance():
 		self.spar_client.cancel_goal()
 
 		rospy.loginfo("Guidance stopped")
+
+	# This function will check receive the current pose of the UAV constantly
+	def callback_land(self, msg_in):
+		# Store the current position at all times so it can be accessed later
+		print(msg_in)
 
 
 	# This function will check receive the current pose of the UAV constantly

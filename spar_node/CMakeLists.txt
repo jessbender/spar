@@ -175,8 +175,8 @@ catkin_install_python(PROGRAMS
   scripts/goto
   scripts/takeoff
   scripts/land
-  scripts/Epis.py
-  scripts/Tracker.py
+  scripts/epi
+  scripts/tracker
   scripts/roi_publisher
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

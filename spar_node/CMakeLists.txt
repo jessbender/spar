@@ -175,6 +175,8 @@ catkin_install_python(PROGRAMS
   scripts/goto
   scripts/takeoff
   scripts/land
+  scripts/Epis.py
+  scripts/Tracker.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

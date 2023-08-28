@@ -11,7 +11,9 @@ from geometry_msgs.msg import Point, PoseStamped
 
 from spar_msgs.msg import FlightMotionAction, FlightMotionGoal
 
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Float32
+
+from sensor_msgs.msg import BatteryState
 
 #importing librasry for interfacing breadcrumb (not yet required.)
 #from breadcrumb.srv import RequestPath
@@ -33,7 +35,7 @@ class Guidance():
 			raise ArgumentError("Invalid waypoint list input!")
 
 		#landing waypoint for the drone to return to.
-		self.landing_waypoint = [-1, -1, 0, 0]
+		self.landing_waypoint = [-1, -1, 1, 0]
 		self.land_refresh = True
 		# Internal counter to see what waypoint were are up to
 		self.waypoint_counter = 0
@@ -90,6 +92,8 @@ class Guidance():
 			# from a diversion to the correct location
 			# XXX: These topics could be hard-coded to avoid using a launch file
 			# subscribe to landing site confirmation signal
+			self.voltage_monitoring = rospy.Subscriber("~battery", BatteryState, self.callback_voltagemonitor)
+
 			self.sub_aruco = rospy.Subscriber("landing_site", Bool, self.callback_land)
 			
 			self.sub_pose = rospy.Subscriber("~pose", PoseStamped, self.callback_pose)
@@ -153,7 +157,10 @@ class Guidance():
 		self.spar_client.cancel_goal()
 
 		rospy.loginfo("Guidance stopped")
-
+	def callback_voltagemonitor(self, msg_in):
+		voltage = msg_in.voltage
+		current = msg_in.current
+		print("the current voltage is" + voltage)
 	# This function will check receive the current pose of the UAV constantly
 	def callback_land(self, msg_in):
 		# Store current position so it can be accessed later, it then set the land refresh changes flag to false.
@@ -166,6 +173,7 @@ class Guidance():
 	def callback_pose(self, msg_in):
 		# Store the current position at all times so it can be accessed later
 		self.current_location = msg_in.pose.position
+		print("my current location is" + [self.current_location.x, self.current_location.y, self.current_location.z, 0.0])
 
 
 	# This function will fire whenever a ROI pose message is sent

@@ -361,7 +361,7 @@ class Guidance():
 			#		(such as aborted), as there are some states
 			#		where we won't recover from, and should just exit
 			if self.spar_client.get_state() == GoalStatus.SUCCEEDED:
-				rospy.loginfo("Reached waypoint %i!" % (self.waypoint_counter))
+				rospy.loginfo(f"Reached waypoint {self.waypoint_counter} and my current battery is {self.voltage}v")
 
 				# XXX:	Another check could go here to finish the mission early
 				#		if "all" inspection tasks have been completed

@@ -7,7 +7,7 @@ from time import sleep
 # Servo parameters
 SERVO_PIN = 21
 servo = Servo(SERVO_PIN)
-
+servo.max()
 def callback(msg):
     # payload commands message structure:
     # both close:   0b00000000 (0)
@@ -16,18 +16,18 @@ def callback(msg):
     # epi open:     0b00000001 (1)
     
     if msg.data == 0 or msg.data == 1:
-        servo.min()
+        servo.max()
         sleep(2)
     elif msg.data == 3 or msg.data == 2:
-        servo.max()
-        sleep(0.5)
+        servo.min()
+        sleep(2)
     else:
         rospy.logwarn("Received invalid command!")
 
 def main():
     # Initialize ROS node
-    rospy.init_node('servo_controller_node')
-    
+    rospy.init_node('tracker_controller_node')
+    servo.max()
     # Subscribe to payloadcommands topic
     rospy.Subscriber('payloadcommands', UInt8, callback)
     

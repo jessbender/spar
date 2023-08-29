@@ -1,0 +1,17 @@
+from gpiozero import Servo
+from time import sleep
+
+# Servo parameters
+SERVO_PIN = 20
+
+
+servo = Servo(SERVO_PIN)
+
+
+
+servo.min()
+sleep(2)
+
+servo.max()
+sleep(0.5)
+    

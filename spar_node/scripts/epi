@@ -3,10 +3,14 @@ import rospy
 from std_msgs.msg import UInt8
 from gpiozero import Servo
 from time import sleep
+# from gpiozero.pins.pigpio import PiGPIOFactory
 
 # Servo parameters
 SERVO_PIN = 20
+# pigpio_factory = PiGPIOFactory()
+# servo = Servo(20, pin_factory=pigpio_factory)
 servo = Servo(SERVO_PIN)
+servo.max()
 
 def callback(msg):
     # payload commands message structure:
@@ -16,18 +20,19 @@ def callback(msg):
     # epi open:     0b00000001 (1) 
     
     if msg.data == 0 or msg.data == 2:
-        servo.min()
+        servo.max()
         sleep(2)
     elif msg.data == 3 or msg.data == 1:
-        servo.max()
+        servo.min()
         sleep(0.5)
+        
     else:
         rospy.logwarn("Received invalid command!")
 
 def main():
     # Initialize ROS node
-    rospy.init_node('servo_controller_node')
-    
+    rospy.init_node('epi_controller_node')
+    servo.max()
     # Subscribe to payloadcommands topic
     rospy.Subscriber('payloadcommands', UInt8, callback)
     

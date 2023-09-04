@@ -1,13 +1,18 @@
 import rospy
 from std_msgs.msg import UInt8
 from gpiozero import Servo
-from time import sleep
-from gpiozero.pins.pigpio.PiGPIOFactory import PiGPIOFactory
 
-pigpio_factory = PiGPIOFactory()
 
-epi_servo  = Servo(20, pin_factory=pigpio_factory)
-tracker_servo  = Servo(21, pin_factory=pigpio_factory)
+
+SERVO_PIN_1 = 13#Green
+epi_servo = Servo(SERVO_PIN_1)
+
+SERVO_PIN_2 = 12#Yellow
+tracker_servo = Servo(SERVO_PIN_2)
+
+epi_servo.max()
+tracker_servo.max()
+
 
 def callback(msg):
     # payload commands message structure:
@@ -19,23 +24,25 @@ def callback(msg):
     if msg.data == 0:
         epi_servo.max()
         tracker_servo.max()
-        sleep(2)
+        rospy.sleep(rospy.Duration(3))
     elif msg.data == 3 or msg.data == 1:
         epi_servo.min()
-        sleep(2)
+        rospy.sleep(rospy.Duration(3))
+        rospy.loginfo("Epi-pen was deployed")
         epi_servo.max()
         if msg.data == 3:
             tracker_servo.min()
-            sleep(2)
+            rospy.sleep(rospy.Duration(3))
+            rospy.loginfo("PLB Tracker was deployed")
             tracker_servo.max()
     elif msg.data == 2:
         tracker_servo.min()
-        sleep(2)
+        rospy.sleep(rospy.Duration(3))
+        rospy.loginfo("PLB Tracker was deployed")
         tracker_servo.max()
 
 def main():
-    epi_servo.max()
-    tracker_servo.max()
+
     # Initialize ROS node
     rospy.init_node('servo_controller_node')
     

@@ -10,8 +10,6 @@ epi_servo = Servo(SERVO_PIN_1)
 SERVO_PIN_2 = 12#Yellow
 tracker_servo = Servo(SERVO_PIN_2)
 
-epi_servo.max()
-tracker_servo.max()
 
 
 def callback(msg):
@@ -24,6 +22,7 @@ def callback(msg):
     if msg.data == 0:
         epi_servo.max()
         tracker_servo.max()
+        rospy.loginfo("AHHHHHHHHHHHHHHHH")
         rospy.sleep(rospy.Duration(3))
     elif msg.data == 3 or msg.data == 1:
         epi_servo.min()

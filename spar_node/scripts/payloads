@@ -1,15 +1,22 @@
 import rospy
 from std_msgs.msg import UInt8
-from gpiozero import Servo
+import RPi.GPIO as GPIO
+import time
 
+SERVO_PIN_1 = 13  # Green
+SERVO_PIN_2 = 12  # Yellow
 
+# Initialize GPIO settings
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(SERVO_PIN_1, GPIO.OUT)
+GPIO.setup(SERVO_PIN_2, GPIO.OUT)
 
-SERVO_PIN_1 = 13#Green
-epi_servo = Servo(SERVO_PIN_1)
+# Initialize the PWM
+epi_servo = GPIO.PWM(SERVO_PIN_1, 50)  # 50 Hz frequency
+tracker_servo = GPIO.PWM(SERVO_PIN_2, 50)  # 50 Hz frequency
 
-SERVO_PIN_2 = 12#Yellow
-tracker_servo = Servo(SERVO_PIN_2)
-
+epi_servo.start(12.5)  # start duty cycle (0-100)
+tracker_servo.start(12.5)  # start duty cycle (0-100)
 
 
 def callback(msg):
@@ -18,38 +25,42 @@ def callback(msg):
     # both open:    0b00000011 (3)
     # tracker open: 0b00000010 (2)
     # epi open:     0b00000001 (1)
-    
+
     if msg.data == 0:
-        epi_servo.max()
-        tracker_servo.max()
-        rospy.loginfo("AHHHHHHHHHHHHHHHH")
-        rospy.sleep(rospy.Duration(3))
-    elif msg.data == 3 or msg.data == 1:
-        epi_servo.min()
-        rospy.sleep(rospy.Duration(3))
+        epi_servo.ChangeDutyCycle(12.5)  # max
+        tracker_servo.ChangeDutyCycle(12.5)  # max
+        time.sleep(3)
+    elif msg.data == 1:
+        epi_servo.ChangeDutyCycle(2.5)  # min
         rospy.loginfo("Epi-pen was deployed")
-        epi_servo.max()
-        if msg.data == 3:
-            tracker_servo.min()
-            rospy.sleep(rospy.Duration(3))
+        time.sleep(3)
+        epi_servo.ChangeDutyCycle(12.5)  # max      
+    elif msg.data == 3:
+            epi_servo.ChangeDutyCycle(2.5)  # min
+            rospy.loginfo("Epi-pen was deployed")
+            tracker_servo.ChangeDutyCycle(2.5)  # min
+            time.sleep(3)
+            epi_servo.ChangeDutyCycle(12.5)  # max
             rospy.loginfo("PLB Tracker was deployed")
-            tracker_servo.max()
+            tracker_servo.ChangeDutyCycle(12.5)  # max
+            # Cleanup GPIO when done
     elif msg.data == 2:
-        tracker_servo.min()
-        rospy.sleep(rospy.Duration(3))
+        tracker_servo.ChangeDutyCycle(2.5)  # min
+        time.sleep(3)
         rospy.loginfo("PLB Tracker was deployed")
-        tracker_servo.max()
+        tracker_servo.ChangeDutyCycle(12.5)  # max
+
 
 def main():
-
     # Initialize ROS node
     rospy.init_node('servo_controller_node')
-    
+
     # Subscribe to payloadcommands topic
     rospy.Subscriber('payloadcommands', UInt8, callback)
-    
+
     # Keep the node alive
     rospy.spin()
+
 
 if __name__ == '__main__':
     main()

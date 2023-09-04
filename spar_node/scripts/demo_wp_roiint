@@ -99,7 +99,7 @@ class Guidance():
 			# Callback to save "current location" such that we can perform and return
 			# from a diversion to the correct location
 			# XXX: These topics could be hard-coded to avoid using a launch file
-			self.voltage_monitoring = rospy.Subscriber("uavasr/battery", BatteryState, self.callback_voltagemonitor)
+			self.voltage_monitoring = rospy.Subscriber("mavros/battery", BatteryState, self.callback_voltagemonitor)
 			rospy.loginfo("subbed to battery ")
 
 			# subscribe to landing site confirmation signal
@@ -109,7 +109,7 @@ class Guidance():
 
 
 			
-			self.sub_pose = rospy.Subscriber("uavasr/pose", PoseStamped, self.callback_pose)
+			self.sub_pose = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback_pose)
 			# Subscriber to catch "ROI" diversion commands
 			self.sub_roi = rospy.Subscriber("roi", PoseStamped, self.callback_inspect_roi)
 

@@ -57,7 +57,7 @@ class Guidance():
 		# Make some space to record down our current location
 		self.current_location = Point()
 		# Set our linear and rotational velocities for the flight
-		self.vel_linear = rospy.get_param("~vel_linear", 0.2)
+		self.vel_linear = rospy.get_param("~vel_linear", 1)
 		self.vel_yaw = rospy.get_param("~vel_yaw", 0.2)
 		# Set our position and yaw waypoint accuracies
 		self.accuracy_pos = rospy.get_param("~acc_pos", 0.1)
@@ -178,6 +178,23 @@ class Guidance():
 		self.voltage = msg_in.voltage
 		self.current = msg_in.current
 		#rospy.loginfo("the current voltage of the battery is " + str(voltage))
+
+		#this is to land to the landing location as an roi
+		if self.voltage < 9.5:
+			self.performing_roi = True
+			rospy.logwarn("Low battery, return to landing point ...")
+			self.spar_client.cancel_goal()
+				
+			self.send_wp(self.waypoints[-1])
+			self.spar_client.wait_for_result()
+			if self.spar_client.get_state() != GoalStatus.SUCCEEDED:
+				# Something went wrong, cancel out of guidance!
+				rospy.signal_shutdown("cancelled")
+				return
+			self.send_land(self)
+			
+	
+	
 	# This function will check receive the current pose of the UAV constantly
 	def callback_land(self, msg_in):
 		# Store current position so it can be accessed later, it then set the land refresh changes flag to false.
@@ -205,6 +222,8 @@ class Guidance():
 			#tracker open: 0b00000010 (2)
 			#epi open:     0b00000001 (1)
 		self.pub_payload.publish(command)
+	
+
 
 	# This function will fire whenever a ROI pose message is sent
 	# It is also responsible for handling the ROI "inspection task"
@@ -390,10 +409,11 @@ class Guidance():
 				#		(Add in another "if" and make the waypoint counter check
 				#		 an "elif" check instead.
 				#		 i.e. if complete; elif more wps; else wps finished)
-				if (self.waypoint_counter < (len(self.waypoints))) and (self.voltage < 9.5):
-					rospy.logwarn("Low battery, return to landing point ...")					
-					self.send_wp(self.waypoints[-1])
-					self.waypoint_counter = len(self.waypoints)
+
+				# if (self.waypoint_counter < (len(self.waypoints))) and (self.voltage < 9.5):
+				# 	rospy.logwarn("Low battery, return to landing point ...")					
+				# 	self.send_wp(self.waypoints[-1])
+				# 	self.waypoint_counter = len(self.waypoints)
 
 				if self.waypoint_counter < (len(self.waypoints)):
 					self.send_wp(self.waypoints[self.waypoint_counter])

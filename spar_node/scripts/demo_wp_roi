@@ -254,13 +254,26 @@ def main(args):
 	rospy.init_node('guidance')
 
 	# List of waypoints
+	surveyAlt = 1.0
 	# [X, Y, Z, Yaw]
-	wps = [[ 0.0, 0.0, 1.0, 0.0],
-		   [ 1.0, 1.0, 1.0, 0.0],
-		   [-1.0, 1.0, 1.0, 0.0],
-		   [-1.0,-1.0, 1.0, 0.0],
-		   [ 1.0,-1.0, 1.0, 0.0],
-		   [ 0.0, 0.0, 1.0, 0.0]]
+	wpsR1 = [[ 0.0, 0.0, surveyAlt, 0.0],
+		   [ 1.0, 1.0, surveyAlt, 0.0],
+		   [-1.0, 1.0, surveyAlt, 0.0],
+		   [-1.0,-1.0, surveyAlt, 0.0],
+		   [ 1.0,-1.0, surveyAlt, 0.0],
+		   [ 0.0, 0.0, surveyAlt, 0.0]]
+
+	wpsR2 = [[ 0.0, 0.0, surveyAlt*2, 0.0],
+		   [ 1.0, 1.0, surveyAlt*2, 0.0],
+		   [-1.0, 1.0, surveyAlt*2, 0.0],
+		   [-1.0,-1.0, surveyAlt*2, 0.0],
+		   [ 1.0,-1.0, surveyAlt*2, 0.0],
+		   [ 0.0, 0.0, surveyAlt*2, 0.0]] 
+	
+	if surveyAlt > 2:
+		wps = wpsR1
+	else:
+		wps = wpsR2
 
 	# Create our guidance class option
 	guide = Guidance(wps)

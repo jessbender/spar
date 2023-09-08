@@ -178,6 +178,9 @@ catkin_install_python(PROGRAMS
   scripts/epi
   scripts/tracker
   scripts/roi_publisher
+  scripts/tf2_listener
+  scripts/tf2_broadcaster_frames
+  scripts/tf2_broadcaster_target
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

@@ -42,6 +42,8 @@ class Guidance():
 		# Internal counter to see what waypoint were are up to
 		self.waypoint_counter = 0
 
+		#flag for only triggering ROI once.
+		self.donotintagain = False
 		# Set a flag to indicate that we are doing a specific inspection
 		# and that we are not following our waypoint list
 		# This will stop our "waypoint is reached" callback from firing
@@ -109,9 +111,12 @@ class Guidance():
 
 
 			
-			self.sub_pose = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback_pose)
+			# self.sub_pose = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback_pose)
+			
+			self.sub_pose = rospy.Subscriber("/uavasr/pose", PoseStamped, self.callback_pose)
+
 			# Subscriber to catch "ROI" diversion commands
-			self.sub_roi = rospy.Subscriber("roi", PoseStamped, self.callback_inspect_roi)
+			self.sub_roi = rospy.Subscriber("/target_detection/roi", PoseStamped, self.callback_inspect_roi)
 
 
 
@@ -228,54 +233,58 @@ class Guidance():
 	# This function will fire whenever a ROI pose message is sent
 	# It is also responsible for handling the ROI "inspection task"
 	def callback_inspect_roi(self, msg_in):
-		# Set our flag that we are performing the diversion
-		self.performing_roi = True
+		if self.waypoint_counter >= 5 and self.donotintagain is False: 
+			# Set our flag that we are performing the diversion
+			self.performing_roi = True
 
-		rospy.loginfo("Starting diversion to ROI...")
-		# Cancel the current goal (if there is one)
-		self.spar_client.cancel_goal()
-		# Record our current location so we can return to it later
-		start_location = self.current_location
-		# XXX:	It would also be a good idea to capture "current yaw" from
-		#		the pose to maintain that throughout a diversion
+			rospy.loginfo("Starting diversion to ROI...")
+			# Cancel the current goal (if there is one)
+			self.spar_client.cancel_goal()
+			# Record our current location so we can return to it later
+			start_location = self.current_location
+			# XXX:	It would also be a good idea to capture "current yaw" from
+			#		the pose to maintain that throughout a diversion
 
-		# Set the "diversion waypoint" (at yaw zero)
-		dwp = [msg_in.pose.position.x, msg_in.pose.position.y, 0.5, 0.0]
-		# Set the "return waypoint" (at yaw zero)
-		rwp = [self.current_location.x, self.current_location.y, self.current_location.z, 0.0]
+			# Set the "diversion waypoint" (at yaw zero)
+			dwp = [msg_in.pose.position.x, msg_in.pose.position.y, 0.5, 0.0]
+			# Set the "return waypoint" (at yaw zero)
+			rwp = [self.current_location.x, self.current_location.y, self.current_location.z, 0.0]
 
-		# XXX: Could pause here for a moment with ( "rospy.sleep(...)" ) to make sure the UAV stops correctly
+			# XXX: Could pause here for a moment with ( "rospy.sleep(...)" ) to make sure the UAV stops correctly
 
-		self.send_wp(dwp)
-		self.spar_client.wait_for_result()
-		if self.spar_client.get_state() != GoalStatus.SUCCEEDED:
-			# Something went wrong, cancel out of guidance!
-			rospy.signal_shutdown("cancelled")
-			return
+			self.send_wp(dwp)
+			self.spar_client.wait_for_result()
+			if self.spar_client.get_state() != GoalStatus.SUCCEEDED:
+				# Something went wrong, cancel out of guidance!
+				rospy.signal_shutdown("cancelled")
+				return
 
-		rospy.loginfo("Reached diversion ROI!")
-		# XXX: Do something? drop yo mama????
-		rospy.sleep(rospy.Duration(3))
-		rospy.loginfo("dropping payload NOW")
-		self.command_payload(command=2)
+			rospy.loginfo("Reached diversion ROI!")
+			# XXX: Do something? drop yo mama????
+			rospy.sleep(rospy.Duration(3))
+			rospy.loginfo("dropping payload NOW")
+			self.command_payload(command=2)
 
 
-		rospy.loginfo("Returning to flight plan...")
+			rospy.loginfo("Returning to flight plan...")
 
-		self.send_wp(rwp)
-		self.spar_client.wait_for_result()
-		if self.spar_client.get_state() != GoalStatus.SUCCEEDED:
-			# Something went wrong, cancel out of guidance!
-			rospy.signal_shutdown("cancelled")
-			return
+			self.send_wp(rwp)
+			self.spar_client.wait_for_result()
+			if self.spar_client.get_state() != GoalStatus.SUCCEEDED:
+				# Something went wrong, cancel out of guidance!
+				rospy.signal_shutdown("cancelled")
+				return
 
-		# "waypoint_counter" represents the "next waypoint"
-		# "waypoint_counter - 1" represents the "current waypoint"
-		rospy.loginfo("Resuming flight plan from waypoint %i!" % (self.waypoint_counter - 1))
-		self.send_wp(self.waypoints[self.waypoint_counter - 1])
-		# Unset our flag that we are performing a diversion
-		# to allow the waypoint timer to take back over
-		self.performing_roi = False
+			# "waypoint_counter" represents the "next waypoint"
+			# "waypoint_counter - 1" represents the "current waypoint"
+			rospy.loginfo("Resuming flight plan from waypoint %i!" % (self.waypoint_counter - 1))
+			self.send_wp(self.waypoints[self.waypoint_counter - 1])
+			# Unset our flag that we are performing a diversion
+			# to allow the waypoint timer to take back over
+			self.performing_roi = False
+
+			# Stop target roi after first iteration (bandaid for now so we don't get multiple interrupts)
+			self.donotintagain = True
 
 
 	# This function is for convinience to simply send out a new waypoint

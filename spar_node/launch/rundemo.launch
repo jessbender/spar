@@ -12,8 +12,16 @@
 		<!-- Spar parameters -->
 		<param name="action_topic" type="string" value="spar/flight" />
 
+		<!-- Net Boundariess -->
+		<param name="safeRangeX" type="double" value="4" />
+		<param name="safeRangeY" type="double" value="3" />
+		<param name="safeRangeZ" type="double" value="4" />
+
 		<!-- Remappings -->
 		<remap from="~/pose" to="uavasr/pose" />
-		<!--remap from="~/roi" to="target_detection/roi" /-->
+		<!-- <remap from="~/pose" to="/mavros/local_position/pose" /> -->
+		<remap from="~/battery" to="uavasr/battery" />
+		<!-- <remap from="~/battery" to="mavros/battery" /> -->
+		<remap from="~/roi" to="target_detection/roi" />
 	</node>
 </launch>

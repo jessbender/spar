@@ -30,6 +30,10 @@ from sensor_msgs.msg import BatteryState
 class Guidance():
 	def __init__(self, waypoints):
 		# Make sure we have a valid waypoint list
+		# Set Boundaries
+		self.safeRangeX = rospy.get_param("~safeRangeX", 2)
+		self.safeRangeY = rospy.get_param("~safeRangeY", 2)
+		self.safeRangeZ = rospy.get_param("~safeRangeZ", 2)
 		if not self.check_waypoints(waypoints):
 			raise ArgumentError("Invalid waypoint list input!")
 
@@ -101,7 +105,7 @@ class Guidance():
 			# Callback to save "current location" such that we can perform and return
 			# from a diversion to the correct location
 			# XXX: These topics could be hard-coded to avoid using a launch file
-			self.voltage_monitoring = rospy.Subscriber("mavros/battery", BatteryState, self.callback_voltagemonitor)
+			self.voltage_monitoring = rospy.Subscriber("~battery", BatteryState, self.callback_voltagemonitor)
 			rospy.loginfo("subbed to battery ")
 
 			# subscribe to landing site confirmation signal
@@ -113,10 +117,10 @@ class Guidance():
 			
 			# self.sub_pose = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback_pose)
 			
-			self.sub_pose = rospy.Subscriber("/uavasr/pose", PoseStamped, self.callback_pose)
+			self.sub_pose = rospy.Subscriber("~pose", PoseStamped, self.callback_pose)
 
 			# Subscriber to catch "ROI" diversion commands
-			self.sub_roi = rospy.Subscriber("/target_detection/roi", PoseStamped, self.callback_inspect_roi)
+			self.sub_roi = rospy.Subscriber("~roi", PoseStamped, self.callback_inspect_roi)
 
 
 
@@ -151,9 +155,26 @@ class Guidance():
 		# If we haven't returned false yet, then waypoints look good!
 		return True
 
-
-	# This function will check if a waypoint is in the format we expect
 	def check_waypoint(self, wp):
+		# Make sure each waypoint is a list
+		if not isinstance(wp, list):
+			rospy.logwarn("Waypoint is not a list of coordinates")
+			return False
+
+		# Make sure each waypoint has 4 values
+		if len(wp) != 4:
+			rospy.logwarn("Waypoint has an invalid length (must be X/Y/Z/Yaw)")
+			return False
+		
+		# Check if the waypoint is inside the net 
+		if abs(wp[0]) > self.safeRangeX or abs(wp[1]) > self.safeRangeY or abs(wp[2]) > self.safeRangeZ:
+			rospy.logwarn("Waypoint has an invalid size for O134 (must be -{}<X<{}/-{}<Y<{}/Z<{}/Yaw)".format(self.safeRangeX,self.safeRangeX, self.safeRangeY, self.safeRangeY, self.safeRangeZ, self.safeRangeZ))
+			return False
+
+		# If we haven't returned false yet, then waypoint looks valid!
+		return True
+	# This function will check if a waypoint is in the format we expect
+	def old_check_waypoint(self, wp):
 		# Make sure each waypoint is a list
 		if not isinstance(wp, list):
 			rospy.logwarn("Waypoint is not a list of coordinates")

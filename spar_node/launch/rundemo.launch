@@ -21,6 +21,6 @@
 		<!-- <remap from="~/pose" to="/mavros/local_position/pose" /> -->
 		<remap from="~/battery" to="uavasr/battery" />
 		<!-- <remap from="~/battery" to="mavros/battery" /> -->
-		<remap from="~/roi" to="target_detection/roi" />
+		<remap from="~/roi" to="targetroi" />
 	</node>
 </launch>

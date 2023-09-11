@@ -57,7 +57,7 @@ if __name__ == '__main__':
     tfln = tf2_ros.TransformListener(tfBuffer)
 
     # Pulblisher for ROI
-    pub_roi = rospy.Publisher('/target_detection/roi', PoseStamped, queue_size=2)
+    pub_roi = rospy.Publisher('targetroi', PoseStamped, queue_size=2)
 
     rospy.loginfo("tf2_listener running.")
 

@@ -49,7 +49,7 @@ if __name__ == '__main__':
     rospy.init_node('tf2_listener')
 
     # Setup timestamp subscriber for "target found" at a specific timestamp
-    sub_found = rospy.Subscriber('/emulated_uav/target_found', Time, callback_target_found)
+    sub_found = rospy.Subscriber('/uavasr/target_found', Time, callback_target_found)
 
     # Create a listener
     # This catches all messages sent using TF2

@@ -35,7 +35,9 @@ class Guidance():
 		self.safeRangeY = rospy.get_param("~safeRangeY", 2)
 		self.safeRangeZ = rospy.get_param("~safeRangeZ", 2)
 		if not self.check_waypoints(waypoints):
-			raise ArgumentError("Invalid waypoint list input!")
+			# raise ArgumentError("Invalid waypoint list input!")
+			rospy.logerr("wp is oob!")
+
 
 		#landing waypoint for the drone to return to.
 		self.landing_waypoint = [-1, -1, 1, 0]
@@ -312,7 +314,7 @@ class Guidance():
 	def send_wp(self, wp):
 		# Make sure the waypoint is valid before continuing
 		if not self.check_waypoint(wp):
-			raise ArgumentError("Invalid waypoint input!")
+			rospy.logerr("Invalid waypoint input!")
 
 		# Build the flight goal
 		goal = FlightMotionGoal()
@@ -522,7 +524,7 @@ def main(args):
 	[2.5, 4.0, 4.0, 0.0]]
 	newwps = []
 	for wp in wps:
-		newwp = [wp[1], wp[0], wp[2]-1.0, wp[3]]
+		newwp = [wp[1], wp[0], wp[2]-2.0, wp[3]]
 		newwps.append(newwp)
 	guide = Guidance(newwps)
 

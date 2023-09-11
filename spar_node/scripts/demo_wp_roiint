@@ -229,7 +229,7 @@ class Guidance():
 				# Something went wrong, cancel out of guidance!
 				rospy.signal_shutdown("cancelled")
 				return
-			self.send_land(self)
+			self.send_land()
 			
 	
 	
@@ -238,10 +238,6 @@ class Guidance():
 		# Store current position so it can be accessed later, it then set the land refresh changes flag to false.
 		if msg_in.data and self.land_refresh:
 			self.landing_waypoint = [self.current_location.x, self.current_location.y, self.current_location.z, 0.0]
-			#open both payload bays
-			self.command_payload(command=1)
-			rospy.sleep(rospy.Duration(3))
-			self.command_payload(command=0)
 			rospy.logfatal("Aruco marker detected, the goofy ahh drone's landing position will be " + str(self.landing_waypoint))
 			self.waypoints[-1] = self.landing_waypoint
 			self.land_refresh = False
@@ -298,16 +294,16 @@ class Guidance():
 			rospy.loginfo("Reached diversion ROI!")
 			# XXX: Do something? drop yo mama????
 			rospy.sleep(rospy.Duration(3))
-			
+
 			rospy.loginfo(f"dropping payload to {self.current_target_name} NOW")
 
-			if self.current_target_name == "Person":
+			if self.current_target_name == "Person" and (self.donot_int_for_person == False):
 			# Stop target roi after first iteration (bandaid for now so we don't get multiple interrupts)
 				self.donot_int_for_person = True
 				self.command_payload(command=1)
 			
 			
-			if self.current_target_name == "Bag":
+			if self.current_target_name == "Bag" and (self.donot_int_for_bag == False):
 				self.command_payload(command=2)
 				self.donot_int_for_bag = True
 

@@ -11,7 +11,7 @@ from geometry_msgs.msg import Point, PoseStamped
 
 from spar_msgs.msg import FlightMotionAction, FlightMotionGoal
 
-from std_msgs.msg import Bool, UInt8
+from std_msgs.msg import Bool, UInt8, String
 
 from sensor_msgs.msg import BatteryState
 
@@ -49,7 +49,8 @@ class Guidance():
 		self.waypoint_counter = 0
 
 		#flag for only triggering ROI once.
-		self.donotintagain = False
+		self.donot_int_for_person = False
+		self.donot_int_for_bag = False
 		# Set a flag to indicate that we are doing a specific inspection
 		# and that we are not following our waypoint list
 		# This will stop our "waypoint is reached" callback from firing
@@ -114,7 +115,9 @@ class Guidance():
 			self.sub_aruco = rospy.Subscriber("landing_site", Bool, self.callback_land)
 			rospy.loginfo("subbed to land")
 
-
+			self.current_target_name = String()
+			self.sub_target_name = rospy.Subscriber("/depthai_node/detection/target_coord", String, self.callback_target_name)
+			
 
 			
 			# self.sub_pose = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback_pose)
@@ -137,6 +140,13 @@ class Guidance():
 			rospy.on_shutdown( lambda : self.shutdown() )
 
 	# This function will check if a list of waypoints is in the format we expect
+	def callback_target_name(self, msg_in):	
+		if msg_in.data != '':
+			msg = msg_in.data.split('-')
+			if msg[0] != '1':
+				self.current_target_name = msg[0]
+
+				
 	def check_waypoints(self, wps):
 		# Make sure waypoints are a list
 		if not isinstance(wps, list):
@@ -256,7 +266,7 @@ class Guidance():
 	# This function will fire whenever a ROI pose message is sent
 	# It is also responsible for handling the ROI "inspection task"
 	def callback_inspect_roi(self, msg_in):
-		if self.waypoint_counter >= 5 and self.donotintagain is False: 
+		if self.waypoint_counter >= 2 and ((self.donot_int_for_person == False) or (self.donot_int_for_bag == False)): 
 			# Set our flag that we are performing the diversion
 			self.performing_roi = True
 
@@ -270,6 +280,9 @@ class Guidance():
 
 			# Set the "diversion waypoint" (at yaw zero)
 			dwp = [msg_in.pose.position.x, msg_in.pose.position.y, 0.5, 0.0]
+			if self.check_waypoint(dwp) == False:
+				rospy.logwarn("The bounding box is exceeded, cancelling.")
+				return
 			# Set the "return waypoint" (at yaw zero)
 			rwp = [self.current_location.x, self.current_location.y, self.current_location.z, 0.0]
 
@@ -285,8 +298,20 @@ class Guidance():
 			rospy.loginfo("Reached diversion ROI!")
 			# XXX: Do something? drop yo mama????
 			rospy.sleep(rospy.Duration(3))
-			rospy.loginfo("dropping payload NOW")
-			self.command_payload(command=2)
+			
+			rospy.loginfo(f"dropping payload to {self.current_target_name} NOW")
+
+			if self.current_target_name == "Person":
+			# Stop target roi after first iteration (bandaid for now so we don't get multiple interrupts)
+				self.donot_int_for_person = True
+				self.command_payload(command=1)
+			
+			
+			if self.current_target_name == "Bag":
+				self.command_payload(command=2)
+				self.donot_int_for_bag = True
+
+			rospy.sleep(rospy.Duration(3))
 
 
 			rospy.loginfo("Returning to flight plan...")
@@ -305,9 +330,6 @@ class Guidance():
 			# Unset our flag that we are performing a diversion
 			# to allow the waypoint timer to take back over
 			self.performing_roi = False
-
-			# Stop target roi after first iteration (bandaid for now so we don't get multiple interrupts)
-			self.donotintagain = True
 
 
 	# This function is for convinience to simply send out a new waypoint

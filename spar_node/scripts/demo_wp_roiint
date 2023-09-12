@@ -264,6 +264,17 @@ class Guidance():
 	def callback_inspect_roi(self, msg_in):
 		if self.waypoint_counter >= 2 and ((self.donot_int_for_person == False) or (self.donot_int_for_bag == False)): 
 			# Set our flag that we are performing the diversion
+			dwp = [msg_in.pose.position.x, msg_in.pose.position.y, 1, 0.0]
+			if self.check_waypoint(dwp) == False:
+				rospy.logwarn("The bounding box is exceeded, cancelling.")
+				return
+			if self.current_target_name == "Person" and self.donot_int_for_person:
+				rospy.logwarn("The Person has already been given a payload, cancelling")
+				return
+			if self.current_target_name == "Bag" and self.donot_int_for_bag:
+				rospy.logwarn("The Bag has already been given a payload, cancelling")
+				return
+			
 			self.performing_roi = True
 
 			rospy.loginfo("Starting diversion to ROI...")
@@ -275,16 +286,6 @@ class Guidance():
 			#		the pose to maintain that throughout a diversion
 
 			# Set the "diversion waypoint" (at yaw zero)
-			dwp = [msg_in.pose.position.x, msg_in.pose.position.y, 0.5, 0.0]
-			if self.check_waypoint(dwp) == False:
-				rospy.logwarn("The bounding box is exceeded, cancelling.")
-				return
-			if self.current_target_name == "Person" and self.donot_int_for_person:
-				rospy.logwarn("The Person has already been given a payload, cancelling")
-				return
-			if self.current_target_name == "Bag" and self.donot_int_for_bag:
-				rospy.logwarn("The Bag has already been given a payload, cancelling")
-				return
 			# Set the "return waypoint" (at yaw zero)
 			rwp = [self.current_location.x, self.current_location.y, self.current_location.z, 0.0]
 

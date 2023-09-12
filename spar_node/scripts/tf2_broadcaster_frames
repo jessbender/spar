@@ -56,7 +56,8 @@ if __name__ == '__main__':
 
 	# Setup pose subscriber
 	# This functionality is provided by the emulator
-	rospy.Subscriber('/uavasr/pose', PoseStamped, callback_pose)
+	# rospy.Subscriber('/uavasr/pose', PoseStamped, callback_pose)
+	rospy.Subscriber('/mavros/local_position/pose', PoseStamped, callback_pose)
 
 	# Setup tf2 broadcasters
 	#    Broadcaster sends a transformation that

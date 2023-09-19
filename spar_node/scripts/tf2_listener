@@ -51,13 +51,13 @@ if __name__ == '__main__':
     # Setup timestamp subscriber for "target found" at a specific timestamp
     sub_found = rospy.Subscriber('/uavasr/target_found', Time, callback_target_found)
 
-    # Create a listener
+    # Create a listene
     # This catches all messages sent using TF2
     tfBuffer = tf2_ros.Buffer()
     tfln = tf2_ros.TransformListener(tfBuffer)
 
     # Pulblisher for ROI
-    pub_roi = rospy.Publisher('targetroi', PoseStamped, queue_size=2)
+    pub_roi = rospy.Publisher('targetroi', PoseStamped, queue_size=20)
 
     rospy.loginfo("tf2_listener running.")
 

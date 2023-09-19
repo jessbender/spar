@@ -12,6 +12,7 @@ tfbr = None
 tfsbr = None
 
 uav_name = "uavg4"
+# uav_name = "emulated_uav"
 camera_name = "camera"
 
 def send_tf_camera():

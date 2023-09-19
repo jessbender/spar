@@ -2,7 +2,7 @@
 <launch>
 	<node name="guidance" pkg="spar_node" type="demo_wp_roiint" respawn="false" output="screen">
 		<!-- Linear and yaw motion velocities -->
-		<param name="vel_linear" type="double" value="2.0" />
+		<param name="vel_linear" type="double" value="0.4" />
 		<param name="vel_yaw" type="double" value="0.2" />
 
 		<!-- Position and yaw waypoint accuracies -->

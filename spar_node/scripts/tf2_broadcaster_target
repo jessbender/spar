@@ -29,7 +29,7 @@ def send_tf_target():
     # Once we know where the target is, relative to the camera frame, we create and sent that transform (relative position target to camera)
 	t.transform.translation.x = -0.4
 	t.transform.translation.y = 0.2
-	t.transform.translation.z = 1.5-0.15     # - altitude of the UAV camera Z.
+	t.transform.translation.z = 1.5     # - altitude of the UAV camera Z.
 	t.transform.rotation.x = 0.0
 	t.transform.rotation.y = 0.0
 	t.transform.rotation.z = 0.0
@@ -43,16 +43,18 @@ def send_tf_target():
 if __name__ == '__main__':
 	rospy.init_node('tf2_broadcaster_target')
 	rospy.loginfo("tf2_broadcaster_target sending target found...")
-
+ 
 	# Setup tf2 broadcaster and timestamp publisher
 	tfbr = tf2_ros.TransformBroadcaster()
-	pub_found = rospy.Publisher('/emulated_uav/target_found', Time, queue_size=10)
+	pub_found = rospy.Publisher('/uavasr/target_found', Time, queue_size=10)
 
 	# Give the nodes a few seconds to configure
 	rospy.sleep(rospy.Duration(2))
 
 	# Send out our target messages
-	send_tf_target()
+	while 1:
+		rospy.sleep(rospy.Duration(0.5))
+		send_tf_target()
 
 	# Give the nodes a few seconds to transmit data
 	# then we can exit

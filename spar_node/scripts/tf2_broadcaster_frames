@@ -19,7 +19,8 @@ def send_tf_camera():
 	# Create a static transform that is slightly
 	# below the UAV and pointing downwards
 	t = TransformStamped()
-	t.header.stamp = rospy.Time.now()
+	# t.header.stamp = rospy.Time.now()
+	t.header.stamp = rospy.Time(0)
 	t.header.frame_id = uav_name
 	t.child_frame_id = camera_name
 
@@ -36,7 +37,6 @@ def send_tf_camera():
 	tfsbr.sendTransform(t)
 
 #This is step typically done by the same program that outputs the pose
-
 def callback_pose( msg_in ):
 	# Create a transform at the time
 	# from the pose message for where

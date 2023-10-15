@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 import math
+import numpy as np
 
 import rospy
 import tf2_ros
-from std_msgs.msg import Time
+from std_msgs.msg import Time, String
 from geometry_msgs.msg import TransformStamped
 
 # Library to send PoseStamped to roi
@@ -13,6 +14,12 @@ from geometry_msgs.msg import PoseStamped
 tfBuffer = None
 tfln = None
 pub_roi = None
+
+# init UAV pose
+uav_pose = []
+x_p = "-1"
+y_p = "-1"
+target_name = ""
 
 def callback_target_found(msg_in):
     # We recieved a "found" timestamp
@@ -41,15 +48,79 @@ def callback_target_found(msg_in):
         pose.pose.orientation.z = 0.0
         pub_roi.publish(pose)
         rospy.loginfo("ROI coordinates sent.")
+
+        tts_target.data = "{}, {}, at x: {}, y: {}".format(target_name, target_name, np.round(pose.pose.position.x, 2), np.round(pose.pose.position.y, 2))
+        rospy.loginfo("{}, {} at x: {}, y: {}".format(target_name, target_name, np.round(pose.pose.position.x, 2), np.round(pose.pose.position.y, 2)))
+        rospy.loginfo("UAV, at x: {}, y: {}, z: {}".format(np.round(current_location.x, 2), np.round(current_location.y, 2), np.round(current_location.z, 2)))
+        pub_tts.publish(tts_target)
         
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
         rospy.logwarn(e)
 
+def callback_aruco_found(msg_in):
+    # We recieved a "found" timestamp
+    # attempt to find the transformation
+    try:
+        # Lookup transform from "map" to "target" at time "msg_in.data",
+        # and allow for 0.5 seconds to collected any additionally needed data
+        t = tfBuffer.lookup_transform("map", "aruco", msg_in.data, rospy.Duration(0.5))
+
+        # Dump information to screen
+        rospy.loginfo("Found aruco at the following location in the world:")
+
+        # This is the infromation that we want for the ROI.
+        rospy.loginfo("[x: %0.2f; y: %0.2f; z: %0.2f]" % (t.transform.translation.x,
+                            t.transform.translation.y,
+                            t.transform.translation.z))
+
+        rospy.loginfo("Sending landing site coordinates...")
+        pose = PoseStamped()
+        pose.pose.position.x = t.transform.translation.x
+        pose.pose.position.y = t.transform.translation.y
+        pose.pose.position.z = t.transform.translation.z
+        pose.pose.orientation.w = 1.0
+        pose.pose.orientation.x = 0.0
+        pose.pose.orientation.y = 0.0
+        pose.pose.orientation.z = 0.0
+        pub_landing.publish(pose)
+        rospy.loginfo("ArUco coordinates sent.")
+
+        tts_target.data = "{}, {}, at x: {}, y: {}".format('ArUco', 'ArUco', np.round(pose.pose.position.x, 2), np.round(pose.pose.position.y, 2))
+        rospy.loginfo("{}, {}, at x: {}, y: {}".format('ArUco', 'ArUco', np.round(pose.pose.position.x, 2), np.round(pose.pose.position.y, 2)))
+        rospy.loginfo("UAV, at x: {}, y: {}, z: {}".format(np.round(current_location.x, 2), np.round(current_location.y, 2), np.round(current_location.z, 2)))
+        pub_tts.publish(tts_target)
+        
+    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+        rospy.logwarn(e)
+
+def callback_uav_pose(msg_in):
+    global x_p, y_p, current_location
+    current_location = msg_in.pose.position
+    uav_pose = [current_location.x, current_location.y, current_location.z, 0.0]
+    x_p = uav_pose[0]
+    y_p = uav_pose[1]
+
+def callback_coord(msg_in):		
+    if msg_in.data != '':
+        msg = msg_in.data.split('-')
+        if msg[0] != '1':
+            global target_name
+            target_name = msg[0]
+
 if __name__ == '__main__':
     rospy.init_node('tf2_listener')
 
+    pub_tts = rospy.Publisher('/depthai_node/detection/tts', String, queue_size=10)
+    tts_target = String()
+    tts_target.data = ''
+
+    sub_topic_coord = rospy.Subscriber('/depthai_node/detection/target_coord',String, callback_coord)
+    sub_uav_pose = rospy.Subscriber('/uavasr/pose', PoseStamped, callback_uav_pose)
+
     # Setup timestamp subscriber for "target found" at a specific timestamp
     sub_found = rospy.Subscriber('/uavasr/target_found', Time, callback_target_found)
+
+    sub_found_aruco = rospy.Subscriber('/uavasr/aruco_found', Time, callback_aruco_found)
 
     # Create a listene
     # This catches all messages sent using TF2
@@ -58,6 +129,8 @@ if __name__ == '__main__':
 
     # Pulblisher for ROI
     pub_roi = rospy.Publisher('targetroi', PoseStamped, queue_size=20)
+
+    pub_landing = rospy.Publisher('targetArUco', PoseStamped, queue_size=20)
 
     rospy.loginfo("tf2_listener running.")
 
